@@ -1,17 +1,18 @@
 # python-deduckt
 
-Deduct the types used in a Python program based on recording runtime types. 
+Through the powers of deductive interpretation, Deduckt will obtain the precise
+call graph of your Python programs and the type signatures of all executed functions.
 Created for the goals of [py2nim](https://github.com/metacraft-labs/py2nim)
 
 
 ## How to use
 
-python-deduckt (also launched with `python-deduckt/deduckt/main.py`) is a drop-in replacement for
-the python interpreter. 
+python-deduckt (also launched with `python-deduckt/deduckt/main.py`) is a drop-in
+replacement for the python interpreter. 
 
-Each traced python execution will update the `python-deduckt.json` file
-stored in the current directory, which describes the obtained static call graph and the inferred
-types of each function definition.
+Each traced python execution will update the `python-deduckt.json` file stored in
+the current directory. This file stores an annotated AST for each module imported
+by your program.
 
 ```bash
 python-deduckt test.py args
@@ -80,18 +81,18 @@ Full doc: todo
 
 * Can I generate mypy annotations with it?
 
-It's fully possible to generate very useful mypy annotations from the data that you record.
-However that hasn't been our usecase, but contributions are welcome
+It's definetely possible to generate very useful mypy annotations from the recorded data.
+However that hasn't been our use case, but contributions are welcome
 
 * Why does it analyze all the events?
 
 In the future we might add an option to trace only a statistically significant part of them.
-It's not a huge priority for our usecase, as we used it for [py2nim](https://github.com/metacraft-labs/py2nim).
+It's not a huge priority for our use case, as we used it for [py2nim](https://github.com/metacraft-labs/py2nim).
 A porting task is not something that would be ran often and better type information is more important than speed.
 
-* Why deduckt
+* How to pronounce deduckt?
 
-python-deduckt: deduct duck typing
+Like the first part of "deductive", or like getting rid of the duck types in your backyard. 
 
 ## LICENSE
 
