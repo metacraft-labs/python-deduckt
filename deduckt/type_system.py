@@ -182,8 +182,10 @@ class PyUnion(PyType):
 
 class PyObject(PyType):
 
-    def __init__(self, label, fields):
+    def __init__(self, label, base, fields):
         self.label = label
+        self.base = None  # no multiple
+        self.inherited = False
         self.fields = fields
 
     def __hash__(self):
@@ -199,6 +201,8 @@ class PyObject(PyType):
         return {
             'kind': 'PyTypeObject',
             'label': self.label,
+            'base': None if self.base is None else self.base.as_json(),
+            'inherited': self.inherited,
             'fields': [
                 {'name': label, 'type': field.as_json()}
                 for label, field

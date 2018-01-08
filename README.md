@@ -15,7 +15,7 @@ the current directory. This file stores an annotated AST for each module importe
 by your program.
 
 ```bash
-python-deduckt test.py args
+python-deduckt full path test.py args
 ```
 
 ## Results
@@ -81,7 +81,7 @@ Full doc: todo
 
 * Can I generate mypy annotations with it?
 
-It's definetely possible to generate very useful mypy annotations from the recorded data.
+It's definitely possible to generate very useful mypy annotations from the recorded data.
 However that hasn't been our use case, but contributions are welcome
 
 * Why does it analyze all the events?

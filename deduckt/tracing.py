@@ -20,7 +20,8 @@ MY = 'c'
 
 IGNORED_FILES = {
     '<frozen importlib._bootstrap>',
-    '<frozen importlib._bootstrap_external>'
+    '<frozen importlib._bootstrap_external>',
+    '__builtin__'
 }
 
 IGNORED_FUNCTIONS = {
@@ -33,10 +34,14 @@ PACKAGE = ''
 loaded_modules = {}
 env = {}
 info = {}
+classes = {}
 
 init()
 
 DEBUG_LOG = False
+
+if DEBUG_LOG:
+    IGNORED_FUNCTIONS.add('log')
 
 
 def warn(*a):
@@ -58,8 +63,8 @@ def success(*a):
 def log(*a):
     if DEBUG_LOG:
         for arg in a:
-            print(arg,)
-        print()
+            sys.stdout.write(str(arg))
+        sys.stdout.write('\n')
 
 
 def load_namespace(filename):
@@ -206,6 +211,19 @@ def start_trace(mainpyfile):
 def finish_trace():
     global loaded_modules
     loaded_modules = {key: value for key, value in loaded_modules.items() if value != False}
+    types = {}
+    for key, value in env.items():
+        if isinstance(value, PyObject) and value.base is not None and value.base in classes:
+            value.base = classes[value.base]
+            value.base.inherited = True
+            fields = list(value.fields.keys())
+            for field in fields:
+                base = value.base
+                while base is not None and isinstance(base, PyObject):
+                    if field in base.fields:
+                        del value.fields[field]
+                        break
+                    base = base.base
     loaded_modules['@types'] = {key: value.as_json() for key, value in env.items()}
     loaded_modules['@types']['@path'] = sys.path
     loaded_modules['@projectDir'] = PROJECT_DIR
@@ -220,8 +238,6 @@ def save_function(name, type, env):
     existing = env.get(name)
     # print(existing, type)
     if existing is None:
-        if len(env) % 100 == 0:
-            print(len(env))
         env[name] = type
     elif existing != type:
         if isinstance(existing, PyFunction):
@@ -265,7 +281,6 @@ def check_type(value, typ, name):
                     pyunify(*[check_value(val) for val in value.values()])
                 ])
     elif kind == PyTuple:
-        print(value)
         return PyTuple([check_type(element, type(element), '') for element in value])
     else:
         return kind
@@ -296,7 +311,9 @@ def check_object(value, typ, env):
                 else:
                     name = '%s.%s' % (load_namespace(path), name)
         if name not in env:
-            env[name] = PyObject(typ.__name__, {})
+            env[name] = PyObject(typ.__name__, None, {})
+            if hasattr(typ, '__mro__') and len(typ.__mro__) > 2:  # python3
+                env[name].base = typ.__mro__[1]
         if not isinstance(value.__dict__, dict):
             return
         for label, field in value.__dict__.items():
@@ -305,6 +322,7 @@ def check_object(value, typ, env):
                 env[name].fields[label] = field_type
             elif env[name].fields[label] != field_type:
                 env[name].fields[label] = pyunify(env[name].fields[label], field_type)
+        classes[typ] = env[name]
 
 
 def valid_module(path):
