@@ -11,7 +11,7 @@ def main():
         sys.exit(2)
 
     # Get script filename
-    mainpyfile = sys.argv[1]
+    mainpyfile = os.path.abspath(sys.argv[1])
     if not os.path.exists(mainpyfile):
         print('Error:', mainpyfile, 'does not exist')
         sys.exit(1)
@@ -46,8 +46,6 @@ def main():
 
         trace_data = finish_trace()
 
-        # with open('types.json', 'w') as h:
-        #     h.write(json.dumps(trace_data['@types'], indent=4))
         with open('python-deduckt.json', 'w') as h:
             h.write(json.dumps(trace_data, indent=4))
     except:

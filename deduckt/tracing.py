@@ -200,7 +200,7 @@ def start_trace(mainpyfile):
     env.clear()
     info.clear()
     sys.settrace(trace_calls)
-    PROJECT_DIR = os.path.abspath(os.path.dirname(mainpyfile))
+    PROJECT_DIR = os.path.dirname(os.path.abspath(mainpyfile))
     PACKAGE = PROJECT_DIR.rpartition('/')[2]
     # XXX: This produces a more detailed output, even thought the docs say it should
     # be the other way arround. It seems that the difference is that profiling covers
