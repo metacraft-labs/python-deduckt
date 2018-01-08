@@ -213,17 +213,21 @@ def finish_trace():
     loaded_modules = {key: value for key, value in loaded_modules.items() if value != False}
     types = {}
     for key, value in env.items():
-        if isinstance(value, PyObject) and value.base is not None and value.base in classes:
-            value.base = classes[value.base]
-            value.base.inherited = True
-            fields = list(value.fields.keys())
-            for field in fields:
-                base = value.base
-                while base is not None and isinstance(base, PyObject):
-                    if field in base.fields:
-                        del value.fields[field]
-                        break
-                    base = base.base
+        if isinstance(value, PyObject) and value.base is not None:
+            if value.base in classes:
+                value.base = classes[value.base]
+                value.base.inherited = True
+                fields = list(value.fields.keys())
+                for field in fields:
+                    base = value.base
+                    while base is not None and isinstance(base, PyObject):
+                        if field in base.fields:
+                            del value.fields[field]
+                            break
+                        base = base.base
+            else:
+                value.base = PyAtom(value.base.__name__)
+
     loaded_modules['@types'] = {key: value.as_json() for key, value in env.items()}
     loaded_modules['@types']['@path'] = sys.path
     loaded_modules['@projectDir'] = PROJECT_DIR
