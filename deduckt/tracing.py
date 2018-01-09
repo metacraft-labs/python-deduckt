@@ -13,6 +13,8 @@ from type_system import (
     Variable,
     pyunify,
     PY_NONE,
+    PY_LIST,
+    PY_DICT,
     KNOWN,
 )
 
@@ -118,16 +120,15 @@ def trace_calls(frame, event, arg):
     '''
     if event != 'call' and event != 'return':
         return
-
     co = frame.f_code
     func_name = co.co_name
     func_filename = co.co_filename
 
     # print(func_filename, func_name, PROJECT_DIR)
-    if func_filename in IGNORED_FILES or \
+    if func_filename[:4] == "/usr" or \
+            func_filename in IGNORED_FILES or \
             func_name in IGNORED_FUNCTIONS or \
             not func_filename.startswith(PROJECT_DIR) or \
-            func_filename.startswith("/usr") or \
             func_filename.endswith(MY):
         return
 
@@ -285,7 +286,11 @@ def check_type(value, typ, name):
                     pyunify(*[check_value(val) for val in value.values()])
                 ])
     elif kind == PyTuple:
-        return PyTuple([check_type(element, type(element), '') for element in value])
+        if len(value) > 8:  # probably a list, python people for some reason abuse tuples
+            kind = PY_LIST
+            return kind.gen([pyunify(*[check_value(element) for element in value])])
+        else:
+            return PyTuple([check_type(element, type(element), '') for element in value])
     else:
         return kind
 
