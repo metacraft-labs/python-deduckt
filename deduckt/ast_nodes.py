@@ -163,7 +163,6 @@ class JsonTranslator:
                         'column': column
                     }
                 else:
-                    print(child)
                     return {
                         'kind': 'PyInt',
                         'i': child,
