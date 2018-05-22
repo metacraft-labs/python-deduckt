@@ -11,12 +11,13 @@ setup(
     url='https://www.metacraft-labs.com',
     packages=find_packages(),
     description=description,
-    long_description=open('README.rst').read(),
+    # long_description=open('README.rst').read(),
     install_requires=open('requirements.txt').read(),
-    entry_points='''
-        [console_scripts]
-        python-deduckt=deduckt.main:cli
-    ''',
+    entry_points={
+      'console_scripts': [
+        'python-deduckt=deduckt.main:main',
+      ],
+    },
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
