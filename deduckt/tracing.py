@@ -56,10 +56,10 @@ def warn(*a):
 
 def success(*a):
     if DEBUG_LOG:
-        sys.stdout.write(FORE.GREEN)
+        sys.stdout.write(Fore.GREEN)
         for arg in a:
             sys.stdout.write(str(arg))
-        sys.stdout.write(FORE.RESET + '\n')
+        sys.stdout.write(Fore.RESET + '\n')
 
 
 def log(*a):
@@ -175,7 +175,7 @@ def trace_calls(frame, event, arg):
         args = []
         variables = []
         return_type = PY_NONE
-        for z, var in enumerate(frame.f_code.co_varnames):
+        for z, var in enumerate(frame.f_code.co_varnames + tuple(frame.f_locals.keys())):
             id = class_name + '#' + func_name + ':' + var
             info[id] = ['instance', 'class', func_name, var]
             value = locals.get(var)
