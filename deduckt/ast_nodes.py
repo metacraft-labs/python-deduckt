@@ -39,11 +39,19 @@ class JsonTranslator:
         return KINDS.get(t, t)
 
     def translate_classdef(self, child):
-        print(ast.dump(child))
+        value = {'kind': 'Class', 'fields': [], 'methods': []}
+        methods = [self.translate(method) for method in child.body if isinstance(method, ast.FunctionDef)]
+        value['methods'] = [{'label': method['label'], 'node': method} for method in methods]
+        return value
 
-    def translate_functiondef(self, child):
-        # print(ast.dump(child))
-        pass
+    def translate_functiondef(self, node):
+        method = {'kind': 'NodeMethod', 'label': node.name, 'args': []}
+        children = [{'kind': 'variable', 'label': child.arg} for child in node.args.args]
+        method['args'] = children
+        code = [self.translate(child) for child in node.body]
+        method['code'] = code
+        return method
+        
 
     def translate_module(self, child):
         value = {'classes': [], 'main': []}
@@ -55,9 +63,13 @@ class JsonTranslator:
         return value
 
     def translate_call(self, child):
-        call = {'kind': 'Call', 'children': [], 'typ': PY_NONE.as_json()}
+        line = getattr(child, 'lineno', -1)
+        column = getattr(child, 'col_offset', -1)
+        call = {'kind': 'Call', 'children': [], 'line': line, 'column': column, 'typ': PY_NONE.as_json()}
         call['children'].append(self.translate(child.func))
         call['children'].extend([self.translate(arg) for arg in child.args])
+        nodes = self.nodes_by_line.setdefault(line, [])
+        nodes.append(call)
         return call
 
     def translate_expr(self, child):
