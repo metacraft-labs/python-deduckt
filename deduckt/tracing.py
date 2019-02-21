@@ -4,7 +4,7 @@ import ast_nodes
 from colorama import init, Fore, Back, Style
 
 from type_system import (
-    PyAtom,
+    PySimple,
     PyFunction,
     PyFunctionOverloads,
     PyGeneric,
@@ -40,7 +40,7 @@ classes = {}
 
 init()
 
-DEBUG_LOG = False
+DEBUG_LOG = True
 
 if DEBUG_LOG:
     IGNORED_FUNCTIONS.add('log')
@@ -90,7 +90,8 @@ def load_module_ast(filename):
     known_module = loaded_modules.get(filename)
     if known_module is None:
         if valid_module(filename):
-            result = {'ast': ast_nodes.nodes_from_file(filename)}
+            # result = {'ast': ast_nodes.nodes_from_file(filename)}
+            result = ast_nodes.nodes_from_file(filename)
             loaded_modules[filename] = result
             return result
         else:
@@ -104,7 +105,7 @@ def locate_call_node(ast, line, fn_name):
     if ast is None or ast is False:
         return
 
-    calls = ast["ast"]["nodes_by_line"].get(line)
+    calls = ast["nodes_by_line"].get(line)
     if calls is None:
         return
 
@@ -135,7 +136,7 @@ def trace_calls(frame, event, arg):
     known_module = loaded_modules.get(func_filename)
     if known_module is None:
         if valid_module(func_filename):
-            loaded_modules[func_filename] = {'ast': ast_nodes.nodes_from_file(func_filename)}
+            loaded_modules[func_filename] = ast_nodes.nodes_from_file(func_filename)
         else:
             loaded_modules[func_filename] = False
             return
@@ -227,7 +228,7 @@ def finish_trace():
                             break
                         base = base.base
             else:
-                value.base = PyAtom(value.base.__name__)
+                value.base = PySimple(value.base.__name__)
 
     loaded_modules['@types'] = {key: value.as_json() for key, value in env.items()}
     loaded_modules['@types']['@path'] = sys.path
@@ -270,7 +271,7 @@ def check_value(value):
 def check_type(value, typ, name):
     kind = KNOWN.get(typ)
     if kind is None:
-        return PyAtom(name)
+        return PySimple(name)
     elif isinstance(kind, PyGeneric):
         if kind.klass == 'list':
             if not value:

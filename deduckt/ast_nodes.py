@@ -1,8 +1,9 @@
 import sys
 import ast
 import json
+from type_system import *
 
-LABEL = 'PyLabel'
+LABEL = 'Variable'
 
 
 def merge(a, b):
@@ -14,6 +15,7 @@ def merge(a, b):
 BIGGEST_INT = 9223372036854775807
 SMALLEST_INT = -9223372036854775808
 
+KINDS = {'Number': 'Int'}
 
 class JsonTranslator:
 
@@ -33,13 +35,41 @@ class JsonTranslator:
         result["nodes_by_line"] = self.nodes_by_line
         return result
 
+    def get_kind(self, t):
+        return KINDS.get(t, t)
+
+    def translate_classdef(self, child):
+        print(ast.dump(child))
+
+    def translate_functiondef(self, child):
+        # print(ast.dump(child))
+        pass
+
+    def translate_module(self, child):
+        value = {'classes': [], 'main': []}
+        for line in child.body:
+            if isinstance(line, ast.ClassDef):
+                value['classes'].append(self.translate(line))
+            else:
+                value['main'].append(self.translate(line))
+        return value
+
+    def translate_call(self, child):
+        call = {'kind': 'Call', 'children': [], 'typ': PY_NONE.as_json()}
+        call['children'].append(self.translate(child.func))
+        call['children'].extend([self.translate(arg) for arg in child.args])
+        return call
+
+    def translate_expr(self, child):
+        return self.translate(child.value)
+
     def translate_child(self, child):
         line = getattr(child, 'lineno', -1)
         column = getattr(child, 'col_offset', -1)
         if isinstance(child, ast.AST):
             node_type = type(child).__name__
             left = {
-                'kind': 'Py%s' % node_type,
+                'kind': '%s' % self.get_kind(node_type),
                 'children': [
                     self.translate(getattr(child, label))
                     for label in child._fields
@@ -49,7 +79,7 @@ class JsonTranslator:
                 'column': column
             }
 
-            while len(left['children']) == 1 and left['children'][0]['kind'] == 'Sequence':
+            while len(left['children']) == 1 and left['children'][0]['kind'] == 'Code':
                 left['children'] = left['children'][0]['children']
 
             if node_type == "Call":
@@ -59,20 +89,20 @@ class JsonTranslator:
             return left
         elif isinstance(child, list):
             return {
-                'kind': 'Sequence',
+                'kind': 'Code',
                 'children': [self.translate(son) for son in child],
                 'line': line,
                 'column': column
             }
         elif child is None:
             return {
-                'kind': 'PyNone',
+                'kind': 'Nil',
                 'line': line,
                 'column': column
             }
         elif isinstance(child, bytes):
             return {
-                'kind': 'PyBytes',
+                'kind': 'Bytes',
                 's': str(child),
                 'line': line,
                 'column': column
@@ -87,22 +117,22 @@ class JsonTranslator:
                 }
             else:
                 return {
-                    'kind': 'PyInt',
+                    'kind': 'Int',
                     'i': child,
                     'line': line,
                     'column': column
                 }
         elif isinstance(child, float):
             return {
-                'kind': 'PyFloat',
+                'kind': 'Float',
                 'f': child,
                 'line': line,
                 'column': column
             }
         else:
             return {
-                'kind': 'PyStr',
-                's': str(child),
+                'kind': 'String',
+                'text': str(child),
                 'line': line,
                 'column': column
             }
@@ -141,14 +171,14 @@ class JsonTranslator:
                     }
                 else:
                     return {
-                        'kind': 'PyInt',
+                        'kind': 'Int',
                         'i': child.n,
                         'line': line,
                         'column': column
                     }
             else:
                 return {
-                    'kind': 'PyFloat',
+                    'kind': 'Float',
                     'f': child.n,
                     'line': line,
                     'column': column
@@ -164,14 +194,14 @@ class JsonTranslator:
                     }
                 else:
                     return {
-                        'kind': 'PyInt',
+                        'kind': 'Int',
                         'i': child,
                         'line': line,
                         'column': column
                     }
             else:
                 return {
-                    'kind': 'PyFloat',
+                    'kind': 'Float',
                     'f': child,
                     'line': line,
                     'column': column
@@ -182,14 +212,14 @@ class JsonTranslator:
         column = getattr(child, 'col_offset', -1)
         if isinstance(child, ast.Str):
             return {
-                'kind': 'PyStr',
+                'kind': 'String',
                 's': child.s,
                 'line': line,
                 'column': column
             }
         else:
             return {
-                'kind': 'PyStr',
+                'kind': 'String',
                 's': child,
                 'line': line,
                 'column': column

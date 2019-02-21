@@ -4,7 +4,7 @@ class PyType:
         return repr(self)
 
 
-class PyAtom(PyType):
+class PySimple(PyType):
 
     def __init__(self, label):
         self.label = label
@@ -13,18 +13,19 @@ class PyAtom(PyType):
         return '<%s>' % self.label
 
     def __eq__(self, other):
-        return isinstance(other, PyAtom) and other.label == self.label
+        return isinstance(other, PySimple) and other.label == self.label
 
     def __hash__(self):
         return hash(self.label)
 
     def as_json(self):
         return {
-            'kind': 'PyTypeAtom',
+            'kind': 'Simple',
             'label': self.label
         }
 
 
+# Method: interlang, but here type is PyFunction, mapped to 'Method'
 class PyFunction(PyType):
 
     def __init__(self, label, args, variables, return_type):
@@ -47,16 +48,16 @@ class PyFunction(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeFunction',
+            'kind': 'Method',
             'label': self.label,
-            'args': [{'name': t.name, 'type': t.type.as_json()} for t in self.args],
-            'variables': [{'name': t.name, 'type': t.type.as_json()} for t in self.variables],
+            'args': [t.type.as_json() for t in self.args],
+            'variables': [{'label': t.label, 'type': t.type.as_json()} for t in self.variables],
             'returnType': self.return_type.as_json()
         }
 
     def __hash__(self, other):
         return hash(self.label) ^ \
-            hash(tuple(t.name for t in self.args)) ^ \
+            hash(tuple(t.label for t in self.args)) ^ \
             hash(tuple(t.type for t in self.args))
 
 
@@ -76,7 +77,7 @@ class PyFunctionOverloads(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeFunctionOverloads',
+            'kind': 'MethodOverload',
             'label': self.label,
             'overloads': [t.as_json() for t in self.overloads]
         }
@@ -104,7 +105,7 @@ class PyGeneric(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeGeneric',
+            'kind': 'Generic',
             'klass': self.klass,
             'length': self.length
         }
@@ -132,7 +133,7 @@ class PyConcrete(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeConcrete',
+            'kind': 'Concrete',
             'label': self.base.klass,
             'types': [t.as_json() for t in self.types]
         }
@@ -154,7 +155,7 @@ class PyOptional(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeOptional',
+            'kind': 'Optional',
             'type': self.type.as_json()
         }
 
@@ -199,12 +200,12 @@ class PyObject(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeObject',
+            'kind': 'Object',
             'label': self.label,
             'base': None if self.base is None else self.base.as_json(),
             'inherited': self.inherited,
             'fields': [
-                {'name': label, 'type': field.as_json()}
+                {'label': label, 'type': field.as_json()}
                 for label, field
                 in self.fields.items()
             ]
@@ -227,7 +228,7 @@ class PyTuple(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeTuple',
+            'kind': 'Tuple',
             'elements': [element.as_json() for element in self.elements]
         }
 
@@ -239,17 +240,18 @@ class PyNone(PyType):
 
     def as_json(self):
         return {
-            'kind': 'PyTypeNone'
+            'kind': 'Simple',
+            'label': 'Void'
         }
 
 
-PY_INT = PyAtom('int')
-PY_FLOAT = PyAtom('float')
-PY_STR = PyAtom('str')
-PY_BOOL = PyAtom('bool')
+PY_INT = PySimple('Int')
+PY_FLOAT = PySimple('Float')
+PY_STR = PySimple('String')
+PY_BOOL = PySimple('Bool')
 PY_NONE = PyNone()
-PY_LIST = PyGeneric('list', 1)
-PY_DICT = PyGeneric('dict', 2)
+PY_LIST = PyGeneric('List', 1)
+PY_DICT = PyGeneric('Hash', 2)
 PY_TUPLE = PyTuple
 
 NoneType = type(None)
@@ -269,11 +271,11 @@ KNOWN = {
 class Variable:
 
     def __init__(self, name, type):
-        self.name = name
+        self.label = name
         self.type = type
 
     def __eq__(self, other):
-        return other.name == self.name and other.type == self.type
+        return other.label == self.label and other.type == self.type
 
 
 def pyunify(*types):
