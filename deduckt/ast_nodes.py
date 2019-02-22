@@ -16,6 +16,22 @@ BIGGEST_INT = 9223372036854775807
 SMALLEST_INT = -9223372036854775808
 
 KINDS = {'Number': 'Int'}
+method_nodes = {}
+
+PROJECT_DIR = ''
+PACKAGE = ''
+
+def load_namespace(filename):
+    '''
+    generates namespace currently based on directories
+    # TODO check __init__.py
+    '''
+    if not filename.startswith(PROJECT_DIR) or filename[-3:] != '.py':
+        return ''
+    else:
+        tokens = filename[len(PROJECT_DIR):].split('/')
+        return PACKAGE + '.'.join(tokens)[:-3]
+
 
 class JsonTranslator:
 
@@ -24,23 +40,29 @@ class JsonTranslator:
         self.line = 0
         self.column = 0
         self.nodes_by_line = {}
+        self.current_class = ''
+        self.current_def = ''
 
     def translate(self, child):
         return (getattr(self, 'translate_%s' % type(child).__name__.lower(), None) or
                 self.translate_child)(child)
 
-    def translate_file(self, root_node, source):
+    def translate_file(self, root_node, source, filename):
         self.source = source.split('\n')
+        self.filename = filename
         result = self.translate(root_node)
         result["nodes_by_line"] = self.nodes_by_line
+
         return result
 
     def get_kind(self, t):
         return KINDS.get(t, t)
 
     def translate_classdef(self, child):
-        value = {'kind': 'Class', 'fields': [], 'methods': []}
+        value = {'kind': 'Class', 'label': child.name, 'fields': [], 'methods': []}
+        self.current_class = child.name
         methods = [self.translate(method) for method in child.body if isinstance(method, ast.FunctionDef)]
+        self.current_class = ''
         value['methods'] = [{'label': method['label'], 'node': method} for method in methods]
         return value
 
@@ -50,6 +72,10 @@ class JsonTranslator:
         method['args'] = children
         code = [self.translate(child) for child in node.body]
         method['code'] = code
+        namespace = load_namespace(self.filename)
+        name = '%s%s%s#%s' % (namespace, '.' if self.current_class else '', self.current_class, node.name)
+        method['return_type'] = PY_NONE.as_json()
+        method_nodes[name] = method
         return method
         
 
@@ -256,13 +282,13 @@ class JsonTranslator:
             }
 
 
-def nodes_from_source(source):
-    return JsonTranslator().translate_file(ast.parse(source), source)
+def nodes_from_source(source, filename):
+    return JsonTranslator().translate_file(ast.parse(source), source, filename)
 
 
 def nodes_from_file(filename):
     with open(filename, 'r') as f:
-        return nodes_from_source(f.read())
+        return nodes_from_source(f.read(), filename)
 
 
 if __name__ == '__main__':

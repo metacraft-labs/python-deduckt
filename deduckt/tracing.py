@@ -1,6 +1,6 @@
 import os
 import sys
-import ast_nodes
+from ast_nodes import *
 from colorama import init, Fore, Back, Style
 
 from type_system import (
@@ -69,17 +69,6 @@ def log(*a):
         sys.stdout.write('\n')
 
 
-def load_namespace(filename):
-    '''
-    generates namespace currently based on directories
-    # TODO check __init__.py
-    '''
-    if not filename.startswith(PROJECT_DIR) or filename[-3:] != '.py':
-        return ''
-    else:
-        tokens = filename[len(PROJECT_DIR):].split('/')
-        return PACKAGE + '.'.join(tokens)[:-3]
-
 
 def profile_calls(frame, event, arg):
     co = frame.f_code
@@ -90,8 +79,7 @@ def load_module_ast(filename):
     known_module = loaded_modules.get(filename)
     if known_module is None:
         if valid_module(filename):
-            # result = {'ast': ast_nodes.nodes_from_file(filename)}
-            result = ast_nodes.nodes_from_file(filename)
+            result = nodes_from_file(filename)
             loaded_modules[filename] = result
             return result
         else:
@@ -136,7 +124,7 @@ def trace_calls(frame, event, arg):
     known_module = loaded_modules.get(func_filename)
     if known_module is None:
         if valid_module(func_filename):
-            loaded_modules[func_filename] = ast_nodes.nodes_from_file(func_filename)
+            loaded_modules[func_filename] = nodes_from_file(func_filename)
         else:
             loaded_modules[func_filename] = False
             return
@@ -160,6 +148,9 @@ def trace_calls(frame, event, arg):
             env[name] = PyFunction(func_name, [], [], value_type)
         else:
             env[name].return_type = value_type
+        if name in method_nodes:
+            node = method_nodes[name]
+            node['returnType'] = value_type.as_json()
     else:
         caller = frame.f_back
         if caller is not None:
@@ -191,6 +182,12 @@ def trace_calls(frame, event, arg):
                 warn("missing variable: " + var)
 
         info[func_name] = ['instance', 'class', func_name, func_name]
+        
+        if name in method_nodes:
+            node = method_nodes[name]
+            for arg, b in zip(node['args'], args):
+                arg['typ'] = b.type.as_json()
+
         save_function(name, PyFunction(func_name, args, variables, return_type), env)
 
     return trace_calls
