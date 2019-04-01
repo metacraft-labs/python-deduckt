@@ -59,7 +59,7 @@ class JsonTranslator:
         return KINDS.get(t, t)
 
     def translate_classdef(self, child):
-        value = {'kind': 'Class', 'label': child.name, 'fields': [], 'methods': []}
+        value = {'kind': 'Class', 'label': child.name, 'fields': [], 'methods': [], 'docstring': []}
         self.current_class = child.name
         methods = [self.translate(method) for method in child.body if isinstance(method, ast.FunctionDef)]
         self.current_class = ''
@@ -74,7 +74,6 @@ class JsonTranslator:
         method['code'] = code
         namespace = load_namespace(self.filename)
         name = '%s%s%s#%s' % (namespace, '.' if self.current_class else '', self.current_class, node.name)
-        method['return_type'] = PY_NONE.as_json()
         method_nodes[name] = method
         return method
         
@@ -96,11 +95,12 @@ class JsonTranslator:
         call['children'].extend([self.translate(arg) for arg in child.args])
         nodes = self.nodes_by_line.setdefault(line, [])
         nodes.append(call)
+        
         return call
 
     def translate_expr(self, child):
         return self.translate(child.value)
-
+    
     def translate_child(self, child):
         line = getattr(child, 'lineno', -1)
         column = getattr(child, 'col_offset', -1)
@@ -141,7 +141,7 @@ class JsonTranslator:
         elif isinstance(child, bytes):
             return {
                 'kind': 'Bytes',
-                's': str(child),
+                'text': str(child),
                 'line': line,
                 'column': column
             }
@@ -251,14 +251,14 @@ class JsonTranslator:
         if isinstance(child, ast.Str):
             return {
                 'kind': 'String',
-                's': child.s,
+                'text': child.s,
                 'line': line,
                 'column': column
             }
         else:
             return {
                 'kind': 'String',
-                's': child,
+                'text': child,
                 'line': line,
                 'column': column
             }
@@ -269,14 +269,14 @@ class JsonTranslator:
         if isinstance(child, ast.Bytes):
             return {
                 'kind': 'PyBytes',
-                's': str(child.s)[2:-1],
+                'text': str(child.s)[2:-1],
                 'line': line,
                 'column': column
             }
         else:
             return {
                 'kind': 'PyBytes',
-                's': str(child)[2:-1],
+                'text': str(child)[2:-1],
                 'line': line,
                 'column': column
             }

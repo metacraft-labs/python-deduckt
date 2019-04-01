@@ -45,8 +45,9 @@ def main():
         sys.settrace(None)
 
         trace_data = finish_trace()
+        trace_data['%types'] = {}
 
-        with open('python-deduckt.json', 'w') as h:
+        with open(os.environ.get('DEDUCKT_OUTPUT_DIR', '.') + '/lang_traces.json', 'w') as h:
             h.write(json.dumps(trace_data, indent=4))
     except:
         sys.settrace(None)

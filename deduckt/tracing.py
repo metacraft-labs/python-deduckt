@@ -154,6 +154,7 @@ def trace_calls(frame, event, arg):
     else:
         caller = frame.f_back
         if caller is not None:
+
             caller_ast = load_module_ast(caller.f_code.co_filename)
             call_node = locate_call_node(caller_ast, caller.f_lineno, func_name)
             if call_node is not None:
@@ -227,9 +228,9 @@ def finish_trace():
             else:
                 value.base = PySimple(value.base.__name__)
 
-    loaded_modules['@types'] = {key: value.as_json() for key, value in env.items()}
-    loaded_modules['@types']['@path'] = sys.path
-    loaded_modules['@projectDir'] = PROJECT_DIR
+    loaded_modules['%types'] = {key: value.as_json() for key, value in env.items()}
+    loaded_modules['%types']['@path'] = sys.path
+    # loaded_modules['@projectDir'] = PROJECT_DIR
     result = loaded_modules
     env.clear()
     info.clear()
@@ -334,4 +335,4 @@ def check_object(value, typ, env):
 
 def valid_module(path):
     # TODO better check
-    return os.path.exists(path) and 'python-deduckt' not in path
+    return os.path.exists(path) and ('python-deduckt' not in path and 'python2nim/deduckt' not in path or 'libs/python-deduckt' in path)
